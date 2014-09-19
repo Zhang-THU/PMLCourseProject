@@ -1,0 +1,44 @@
+#Practical Machine Learning Course Project
+In this report, I will brief discuss what algorithm I use and how I estimate the error rate in the whole project.
+  
+First, we need to load the data.(The download procedure is omitted here).
+```{r readdata}
+data <- read.csv("pml-training.csv")
+```
+  
+Before applying the machine learning algorithm, we need to do some cleaning. Concretely, here is what I do: delete the columns where a lot of NA appear or many empty observations appear. What's more, by looking at the data, I find the first seven columns are irrelated to the problem(such as user name, etc), so I skip them as well. The rest columns all seem to to be reasonble predictors.
+```{r cleaning}
+data <- data[,colSums(is.na(data))==0]
+data <- data[,colSums(data=="")==0]
+data <- data[,-(1:7)]
+```
+  
+After cleaning the data, I split the data into a training set and a cross validation set using caret package, so I can calculate the out of sample error rate.
+```{r split}
+library(ggplot2);library(lattice);library(caret);library(randomForest)
+set.seed(12345)
+inTrain <- createDataPartition(y=data$classe,p=0.6,list=F)
+training <- data[inTrain,]
+cv <- data[-inTrain,]
+```
+
+After all these preparations, we finally come to the algorithm part. As the ultimate goal is a classification problem, I use the random forest algorithm. To make the program run faster, I set the ntree to be 150.
+```{r model}
+modelFit <- randomForest(classe ~ ., data=training,ntree=150)
+```
+  
+Then we can use a confusionMatrix to see the training error.
+```{r training_error}
+result_training <- predict(modelFit, training)
+confusionMatrix(result_training,training$classe)
+```
+  
+As the algorithm did pretty well in the training set, we then apply the model to the cross validation set to see the out of sample error rate.
+  
+```{r cv_error}
+result_cv <- predict(modelFit,cv)
+confusionMatrix(result_cv,cv$classe)
+```
+  
+As shown in the matrix, the out of sample error rate is quite low. 
+As a result, we can conclude that the algorithm solve the problem pretty well.
